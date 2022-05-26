@@ -1,6 +1,6 @@
 import { buildSchema } from "graphql";
 
-const typeDefs = buildSchema(
+const schema = buildSchema(
     `#graphql
     
     # Types
@@ -69,4 +69,4 @@ on va aussi devoir importer et utiliser des composants {execute, subscribe} de g
 
 A suivre demain */
 
-export {typeDefs};
+export {schema};

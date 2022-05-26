@@ -1,41 +1,26 @@
 import http from 'http';
 import express from "express";
-import {execute, subscribe} from 'graphql';
-import { graphqlHTTP } from "express-graphql";
-import {makeExecutableSchema} from '@graphql-tools/schema'
-import {SubscriptionServer} from 'subscriptions-transport-ws';
+import {graphql} from 'graphql';
 
-import {typeDefs} from './Schema/typeDefs';
-import {resolvers} from './Schema/resolvers';
+import {schema} from './Schema/schema';
+import {rootValue} from './Schema/rootValue';
 
-const schema = makeExecutableSchema({
-  typeDefs,
-  resolvers
-});
 
 const app = express();
-app.use('/graphql', graphqlHTTP({
-  schema: schema,
-  rootValue: resolvers,
-  graphiql: true,
-}));
+
+app.use('/graphql', (req, res, next) => {
+  graphql({ schema, rootValue, source: req.body }).then((result) => {
+    res.send(result);
+  });
+})
+
+app.use('/', (_, res) => {
+  res.sendFile(__dirname + '/Client/index.html')
+})
 
 const httpServer = http.createServer(app);
 
 httpServer.listen(4000, () => {
   console.log('Running a GraphQL API server at http://localhost:4000/graphql');
-
-  SubscriptionServer.create(
-    {
-      execute,
-      subscribe,
-      rootValue: resolvers,
-      schema: typeDefs
-    },
-    {
-      server: httpServer,
-      path: '/graphql',
-    }
-  )
 });
 

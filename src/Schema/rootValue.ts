@@ -30,7 +30,7 @@ const subTopics = {
     BID_UPDATE: "BID_UPDATE"
 }
 
-const resolvers = {
+const rootValue = {
 	Query: {
 		getUsers() {
 			console.log(users);
@@ -154,4 +154,4 @@ const resolvers = {
 	},
 };
 
-export {resolvers};
+export {rootValue};
