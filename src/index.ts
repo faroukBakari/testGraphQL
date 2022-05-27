@@ -1,12 +1,12 @@
 import http from 'http';
 import express from "express";
+import bodyParser from 'body-parser';
 import {graphql} from 'graphql';
 
-import {schema} from './Schema/schema';
-import {rootValue} from './Schema/rootValue';
-
 const app = express();
+app.use(bodyParser.json())
 // const staticMiddleware = express.static("src/Client");
+// app.use(staticMiddleware);
 
 //----------------------------------------------
 import webpack from 'webpack';
@@ -17,8 +17,23 @@ const webpackDevMidleware = webpackDevMidlewareFactory(compiler, webpackConfig.d
 app.use(webpackDevMidleware);
 //----------------------------------------------
 
-// app.use(staticMiddleware);
-app.use('/graphql', (req, res, next) => graphql({ schema, rootValue, source: req.body }).then(resp => res.send(resp)));
+import {schema} from './Schema/schema';
+import {rootValue} from './Schema/rootValue';
+
+app.post('/graphql', (req, res, next) => {
+
+  // console.log(req.body);
+  
+  graphql({ schema, rootValue, source: req.body.query })
+    .then(resp => {
+      console.log(resp);
+      res.send(resp)
+    })
+    .catch(err => {
+      console.error(err);
+      res.send(err)
+    })
+});
 
 const httpServer = http.createServer(app);
 httpServer.listen(4000, () => {
