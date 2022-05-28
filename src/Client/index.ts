@@ -24,9 +24,9 @@ client.subscribe(
 		query: "subscription { auctionUpdate(productId: 0) {amount} }",
 	},
 	{
-		next: (data) => console.log(`getting updates : ${data}`),
-		error: (err) => console.error(err),
-		complete: () => console.log("complete"),
+		next: (data) => console.log(`Subscription updates : ${JSON.stringify(data)}`),
+		error: (err) => console.error(`Subscription client error : ${err}`),
+		complete: () => console.log("Subscription terminated!"),
 	}
 );
 
@@ -34,7 +34,7 @@ const textarea :HTMLTextAreaElement | null  = document.querySelector('#query');
 textarea?.addEventListener('keydown', (e) => {
   if (e.keyCode === 9) {
     e.preventDefault()
-    textarea.setRangeText( '	', textarea.selectionStart, textarea.selectionStart, 'end');
+    textarea.setRangeText( '  ', textarea.selectionStart, textarea.selectionStart, 'end');
   }
   if (e.key === '{') {
     e.preventDefault()
@@ -74,8 +74,8 @@ Object.keys(queryHist).forEach((key, idx, self) => {
 
 const addHist = (req: string) => {
 	const key = strhash(req);
-	console.log(req.replace(/\s+/g,''));
 	if (!(key in queryHist)) {
+		console.log(`Saving request : ${req.replace(/\s+/g,'')}`);
 		queryHist[key] = req;
 		localStorage.setItem('queryHist', JSON.stringify(queryHist));
 		addHistBtn(key, req);
@@ -84,7 +84,6 @@ const addHist = (req: string) => {
 
 $("#query-btn").on('click', (evt) => {
 	const req = $("#query").val()?.toString() || '';
-	console.log(req);
 	$.ajax({
 		url: "/graphql",
 		method: "POST",
@@ -96,7 +95,6 @@ $("#query-btn").on('click', (evt) => {
 		success: (resp) => {
 			addHist(req);
 			const data = JSON.stringify(resp, null, 4);
-			console.log(data);
 			$("#response").text(data);
 		},
 	});

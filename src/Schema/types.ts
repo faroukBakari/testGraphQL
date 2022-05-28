@@ -63,3 +63,7 @@ export interface hasAmount {
 export interface hasSchedule {
     schedule: number;
 }
+
+export interface hasAuctionUpdate {
+    auctionUpdate: Bid;
+}

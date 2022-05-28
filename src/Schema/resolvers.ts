@@ -106,7 +106,7 @@ const resolvers = {
 			if (!products[input.productId]) return;
 			console.log(products[input.productId]);
 			if (products[input.productId].auctionState === types.state.PENDING) {
-				products[input.productId].expiration = Date.now() + 60000;
+				products[input.productId].expiration = Date.now() + 6000000;
 				products[input.productId].auctionState = types.state.LIVE; // no need for state management. will be inferred from starting timestamp
 			}
 			return products[input.productId];
@@ -145,9 +145,9 @@ const resolvers = {
 		auctionUpdate: {
 			subscribe: withFilter(
 				() => pubsub.asyncIterator(subTopics.BID_UPDATE),
-				(lastBid: types.Bid, filter: types.hasProductId) => {
-                    console.log(`not enougth => lastBid : ${lastBid.productId} / filter : ${filter.productId})`);
-                    return lastBid.productId === filter.productId
+				(lastBid: types.hasAuctionUpdate, filter: types.hasProductId) => {
+                    console.log(`subscribtion filter => lastBid : ${lastBid?.auctionUpdate.productId} / filter : ${filter.productId})`);
+                    return lastBid?.auctionUpdate.productId === filter.productId;
                 }
 			),
 		},
