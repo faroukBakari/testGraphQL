@@ -1,7 +1,9 @@
 import http from 'http';
 import express from "express";
 import bodyParser from 'body-parser';
+import { WebSocketServer } from 'ws';
 import {graphql} from 'graphql';
+import { parse } from 'url';
 
 const app = express();
 app.use(bodyParser.json())
@@ -36,7 +38,27 @@ app.post('/graphql', (req, res, next) => {
 });
 
 const httpServer = http.createServer(app);
+
+//----------------------------------------------
+const wss = new WebSocketServer({
+  server: httpServer,
+  path: "/subscriptions"
+});
+wss.on('connection', (socket, req) => {
+  const { pathname } = parse(req.url || '');
+  console.log(`Incomming connection at ${pathname} from ${req.socket.remoteAddress}`);
+  if (pathname !== '/subscriptions') {
+    console.log('websocket connection rejected!');
+    return socket.close();
+  }
+  socket.on('message', (data, isBinary) => {
+    console.log(`Received message from ${req.socket.remoteAddress} : <${data}>`);
+  })
+  socket.send('welcome');
+
+});
+//----------------------------------------------
+
 httpServer.listen(4000, () => {
   console.log('Running a GraphQL API server at http://localhost:4000/graphql');
 });
-
