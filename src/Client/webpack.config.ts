@@ -11,8 +11,12 @@ export default {
 	devServer: {
 		stats: { colors: true },
 	},
+	resolve: {
+        extensions: ['.ts', '.js', '.json']
+    },
 	module: {
 		rules: [
+			{ test: /\.ts$/, exclude: /node_modules/, use: [{ loader: "babel-loader", options: { presets: ["@babel/preset-env"] } }, 'ts-loader'] },
 			{ test: /\.js$/, exclude: /node_modules/, use: { loader: "babel-loader", options: { presets: ["@babel/preset-env"] } } },
 			{ test: /\.s?css$/, exclude: /node_modules/, use: ["style-loader", "css-loader", "postcss-loader", { loader: "sass-loader", options: { sourceMap: false } }] }, // sourceMap: false prevent style crashing when live-updating
 			{

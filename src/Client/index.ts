@@ -1,28 +1,89 @@
 import "./index.scss";
 import $ from "jquery";
 
-// Create WebSocket connection.
-const socket = new WebSocket('ws://localhost:4000/subscriptions');
+import { createClient } from 'graphql-ws';
+//import {autoIndent} from './autoIndent';
 
-// Connection opened
-socket.addEventListener('open', function (event) {
-	console.log('websocket opened : waiting for server confirmation...');
-});
-socket.addEventListener('close', function (event) {
-	console.log('websocket connection rejected!');
+const strhash = (input: string) => {
+	let hash = 0, i, chr;
+	if (input.length === 0) return hash.toString(16);
+	for (i = 0; i < input.length; i++) {
+		chr = input.charCodeAt(i);
+		hash = (hash << 5) - hash + chr;
+		hash |= 0; // Convert to 32bit integer
+	}
+	return hash.toString(16);
+};
+
+const client = createClient({
+  url: 'ws://localhost:4000/subscriptions',
 });
 
-// Listen for messages
-socket.addEventListener('message', function (event) {
-	console.log(`Message from server <${event.data}>`);
-	if (event.data === 'welcome') {
-		console.log('websocket successfully connected!');
-		socket.send('welcome');
+client.subscribe(
+	{
+		query: "subscription { auctionUpdate(productId: 0) {amount} }",
+	},
+	{
+		next: (data) => console.log(`getting updates : ${data}`),
+		error: (err) => console.error(err),
+		complete: () => console.log("complete"),
+	}
+);
+
+const textarea :HTMLTextAreaElement | null  = document.querySelector('#query');
+textarea?.addEventListener('keydown', (e) => {
+  if (e.keyCode === 9) {
+    e.preventDefault()
+    textarea.setRangeText( '	', textarea.selectionStart, textarea.selectionStart, 'end');
+  }
+  if (e.key === '{') {
+    e.preventDefault()
+    textarea.setRangeText( '{}',  textarea.selectionStart, textarea.selectionStart );
+	textarea.setSelectionRange(textarea.selectionStart + 1, textarea.selectionStart + 1);
+  }
+  if (e.key === '[') {
+    e.preventDefault()
+    textarea.setRangeText( '[]',  textarea.selectionStart, textarea.selectionStart );
+	textarea.setSelectionRange(textarea.selectionStart + 1, textarea.selectionStart + 1);
+  }
+})
+
+const queryHist:  { [key: string]: string } = JSON.parse(localStorage.getItem('queryHist') || "{}");
+
+const addHistBtn = (key: string, req: string) => {
+	$("#query-history").append(`
+		<span  class="hist-btn" id="hist-btn-${key}" title="${req}">${req.replace(/\s+/g,'')}</span>
+	`);
+	$(`#hist-btn-${key}`).on('click', (evt) => {
+		$("#query").val(queryHist[key]);
+	})
+	$(`#hist-btn-${key}`).on('contextmenu', (evt) => {
+		evt.preventDefault();
+		delete queryHist[key];
+		$(`#hist-btn-${key}`).remove();
+		localStorage.setItem('queryHist', JSON.stringify(queryHist));
+	})
+}
+
+Object.keys(queryHist).forEach((key, idx, self) => {
+	addHistBtn(key, queryHist[key]);
+	if (idx === self.length - 1) {
+		$("#query").val(queryHist[key]);
 	}
 });
 
+const addHist = (req: string) => {
+	const key = strhash(req);
+	console.log(req.replace(/\s+/g,''));
+	if (!(key in queryHist)) {
+		queryHist[key] = req;
+		localStorage.setItem('queryHist', JSON.stringify(queryHist));
+		addHistBtn(key, req);
+	}
+}
+
 $("#query-btn").on('click', (evt) => {
-	const req = $("#query").val();
+	const req = $("#query").val()?.toString() || '';
 	console.log(req);
 	$.ajax({
 		url: "/graphql",
@@ -33,6 +94,7 @@ $("#query-btn").on('click', (evt) => {
             variables: { }
 		}),
 		success: (resp) => {
+			addHist(req);
 			const data = JSON.stringify(resp, null, 4);
 			console.log(data);
 			$("#response").text(data);

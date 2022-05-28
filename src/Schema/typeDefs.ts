@@ -1,8 +1,6 @@
 import { buildSchema } from "graphql";
 
-const schema = buildSchema(
-    `#graphql
-    
+const typeDefs = buildSchema(`#graphql
     # Types
     scalar Timestamp
     type User {
@@ -69,4 +67,4 @@ on va aussi devoir importer et utiliser des composants {execute, subscribe} de g
 
 A suivre demain */
 
-export {schema};
+export {typeDefs};
