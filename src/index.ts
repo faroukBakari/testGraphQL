@@ -59,11 +59,10 @@ const wss = new WebSocketServer({
 const serverCleanup = useServer({
   schema,
   onConnect: async (ctx) => {
-    console.log(ctx);
+    console.log(`new incomming connection from ${ctx.extra.request.socket.remoteAddress}`);
   },
   onDisconnect(ctx, code, reason) {
-    console.log(ctx);
-    console.log(`disconnected with code ${code} : reason = ${reason}`);
+    console.log(`<${ctx.extra.request.socket.remoteAddress}> disconnected with code ${code} / reason = ${reason}`);
   }
 }, wss);
 //----------------------------------------------

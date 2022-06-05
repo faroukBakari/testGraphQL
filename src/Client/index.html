@@ -8,17 +8,13 @@
 </head>
 
 <body>
-    <!-- <script src="https://code.jquery.com/jquery-3.6.0.js"
-        integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script> -->
     <div class="main">
-        <div class="hist-container">
-            <div class="query-history" id="query-history">
-                <!-- <div class="hist-btn" dataKey="${key}" title="${queryHist[key]}">
-                    <span>✕</span>
-                </div> -->
+        <div class="requester">
+            <div class="hist-container">
+                <div class="query-history" id="query-history">
+                </div>
             </div>
-        </div>
-        <textarea class="query" name="query" id="query">{
+            <textarea class="query" name="query" id="query">{
 __schema {
     queryType {
     fields {
@@ -37,8 +33,14 @@ __schema {
     }
 }
 }</textarea>
-        <span class="query-btn" id="query-btn">Go!</span>
-        <pre class="response" id="response"></pre>
+            <span class="query-btn" id="query-btn">&#9658;</span>
+            <pre class="response" id="response"></pre>
+        </div>
+        <div class="server-subscriptions">
+            <div class="sub-selecter" id="sub-selecter">
+            </div>
+            <div class="sub-updates" id="sub-updates"></div>
+        </div>
     </div>
 </body>
 

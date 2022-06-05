@@ -102,21 +102,19 @@ const resolvers = {
 			return shows[input.showId];
 		},
 		startAuction(_: Object, input: types.hasProductId) {
-			console.log(`startAuction(input.productId=${input.productId})`);
 			if (!products[input.productId]) return;
-			console.log(products[input.productId]);
+			console.log(`startAuction(input.productId=${input.productId})`);
 			if (products[input.productId].auctionState === types.state.PENDING) {
-				products[input.productId].expiration = Date.now() + 6000000;
+				products[input.productId].expiration = Date.now() + 60000;
 				products[input.productId].auctionState = types.state.LIVE; // no need for state management. will be inferred from starting timestamp
 			}
 			return products[input.productId];
 		},
 		placeBid(_: Object, input: types.hasProductId & types.hasUserId & types.hasAmount) {
 			const now = Date.now();
-			console.log(`startAuction(input.productId=${input.productId})`);
 			const product = products[input.productId];
-			console.log(product);
 			if (!product || product.expiration === null) return;
+			console.log(`placeBid(input.productId=${input.productId})`);
 			const expiration = product.lastBid?.expiration || product.expiration;
 			const BestAmount = product.lastBid?.amount || product.startingPrice;
 			if (now < expiration && BestAmount < input.amount) {

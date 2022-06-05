@@ -1,10 +1,9 @@
 import path from "path";
 // import MiniCssExtractPlugin from "mini-css-extract-plugin";
 import HtmlWebpackPlugin from "html-webpack-plugin";
-require("babel-polyfill");
 
 export default {
-	entry: ["babel-polyfill", "./src/Client/index.ts"],
+	entry: ["./src/Client/index.ts"],
 	devtool: "source-map",
 	target: process.env.NODE_ENV === "production" ? "browserslist" : "web",
 	mode: process.env.NODE_ENV === "production" ? "production" : ("development" as "production" | "development" | "none" | undefined),
@@ -16,8 +15,8 @@ export default {
     },
 	module: {
 		rules: [
-			{ test: /\.ts$/, exclude: /node_modules/, use: [{ loader: "babel-loader", options: { presets: ["@babel/preset-env"] } }, 'ts-loader'] },
-			{ test: /\.js$/, exclude: /node_modules/, use: { loader: "babel-loader", options: { presets: ["@babel/preset-env"] } } },
+			{ test: /\.ts$/, exclude: /node_modules/, use: [ "babel-loader", 'ts-loader'] },
+			{ test: /\.js$/, exclude: /node_modules/, use: ["babel-loader"] },
 			{ test: /\.s?css$/, exclude: /node_modules/, use: ["style-loader", "css-loader", "postcss-loader", { loader: "sass-loader", options: { sourceMap: false } }] }, // sourceMap: false prevent style crashing when live-updating
 			{
 				test: /\.(ico|jpg|png)$/,

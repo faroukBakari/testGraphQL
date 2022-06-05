@@ -1,5 +1,4 @@
 import { buildSchema } from "graphql";
-
 const typeDefs = buildSchema(`#graphql
     # Types
     scalar Timestamp
@@ -37,8 +36,6 @@ const typeDefs = buildSchema(`#graphql
         getShowProducts(showId: Int!): [Product]!
         getProducts: [Product]!
     }
-
-
     # Mutations
     type Mutation {
         createUser(name: String!): User
