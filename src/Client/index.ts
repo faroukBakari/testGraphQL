@@ -132,7 +132,8 @@ let client = createClient({
 });
 
 const subscritions = {};
-type gqlEndPoint = { fields: [ {name: string, args?: [{name: string}], type?: {name: string, kind: string, fields?: [ {name: string, type?: {kind: string} }]} } ]};
+type type = {kind: string, name?: string, fields?: [ {name: string, type?: type }], ofType?: type};
+type gqlEndPoint = { fields: [ {name: string, args?: [{name: string}], type?: type } ]};
 type gqlSchema = {
 	__schema : {
 		queryType? : gqlEndPoint,
@@ -203,6 +204,15 @@ httpGrphQLReq(
 			type {
 				kind
 				name
+				ofType {
+					kind
+					fields {
+						name
+						type {
+							kind
+						}
+					}
+				}
 				fields {
 					name
 					type {
@@ -211,18 +221,18 @@ httpGrphQLReq(
 				}
 			}
 			args {
-			name
-			type {
-				kind
 				name
-				ofType {
+				type {
 					kind
 					name
-					fields {
+					ofType {
+						kind
 						name
+						fields {
+							name
+						}
 					}
 				}
-			}
 			}
 		}
 	  }
@@ -230,7 +240,8 @@ httpGrphQLReq(
   }
 `,
 	(resp: { data: gqlSchema }) => {
-		console.log(JSON.stringify(resp, null, 4));
+		// console.log(JSON.stringify(resp, null, 4));
+		resp.data?.__schema?.subscriptionType?.fields.length && $('#server-subscriptions').show();
 		resp.data?.__schema?.subscriptionType?.fields.forEach((field) => {
 			console.log(JSON.stringify(field.args, null, 4));
 			$("#sub-selecter").append(`
@@ -252,7 +263,9 @@ httpGrphQLReq(
 				const query = field.args?.length ? `subscription { auctionUpdate ${params ? `(${params})` : ''} ${
 					(field?.type?.kind === "OBJECT")
 						? `{${field?.type?.fields?.filter(field => field.type?.kind !== "OBJECT")?.map(field => field.name).toString().replaceAll(',', ' ')}}`
-						: ''
+						: (field?.type?.ofType?.kind === "OBJECT")
+							? `{${field?.type?.ofType?.fields?.filter(field => field.type?.kind !== "OBJECT")?.map(field => field.name).toString().replaceAll(',', ' ')}}`
+							: ''
 				} }` : `subscription { auctionUpdate {amount} }`;
 				console.log(query);
 				client.subscribe({query}, {

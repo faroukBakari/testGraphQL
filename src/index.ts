@@ -25,7 +25,6 @@ import {resolvers} from './Schema/resolvers';
 const schema = makeExecutableSchema({ typeDefs, resolvers });
 
 app.post('/graphql', (req, res) => {
-  // console.log(req.body);
   graphql({ schema, rootValue: {}, source: req.body.query })
     .then(resp => {
       res.send(resp)
@@ -43,20 +42,7 @@ const wss = new WebSocketServer({
   server: httpServer,
   path: "/subscriptions"
 });
-/* wss.on('connection', (socket, req) => {
-  const { pathname } = parse(req.url || '');
-  console.log(`Incomming connection at ${pathname} from ${req.socket.remoteAddress}`);
-  if (pathname !== '/subscriptions') {
-    console.log('websocket connection rejected!');
-    return socket.close();
-  }
-  socket.on('message', (data, isBinary) => {
-    console.log(`Received message from ${req.socket.remoteAddress} : <${data}>`);
-  })
-  socket.send('welcome');
-
-}); */
-const serverCleanup = useServer({
+useServer({
   schema,
   onConnect: async (ctx) => {
     console.log(`new incomming connection from ${ctx.extra.request.socket.remoteAddress}`);

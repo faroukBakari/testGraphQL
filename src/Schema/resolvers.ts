@@ -1,155 +1,72 @@
+import Show from "./show";
+import User from "./user";
+import Product from "./product";
+import state from "./state";
+import dataService from "./dataService";
 
-import {PubSub, withFilter } from 'graphql-subscriptions';
-import * as types from "./types";
-
-
-const users: types.User[] = [{
-    id: 0,
-    name: "lol"
-}];
-const shows: types.Show[] = [{
-    id: 0,
-    name: "hhhh",
-    userId: 0,
-    state: 0,
-    schedule: 1653182625161,
-    currentProductId: null
-}];
-const products: types.Product[] = [{
-    id: 0,
-    name: "uuuu",
-    showId: 0,
-    startingPrice: 5,
-    auctionState: 0,
-    expiration: null,
-    lastBid: null
-}];
-
+import { PubSub, withFilter } from "graphql-subscriptions";
 const pubsub = new PubSub();
 const subTopics = {
-    BID_UPDATE: "BID_UPDATE"
-}
+	BID_UPDATE: "BID_UPDATE",
+};
 
 const resolvers = {
 	Query: {
-		getUsers() {
-			console.log(users);
-			return users;
+		getUsers(): User[] {
+			return dataService.getTable("users") as User[];
 		},
-		getShows() {
-			console.log(shows);
-			return shows;
+		getShows(): Show[] {
+			return dataService.getTable("shows") as Show[];
 		},
-		getProducts() {
-			console.log(products);
-			return products;
+		getProducts(): Product[] {
+			return dataService.getTable("products") as Product[];
 		},
-		getShowProducts(_: Object, input: types.hasShowId) {
-			const out = products.filter((p) => {
-				console.log("p.showId (" + p.showId + ") === input.showId (" + input.showId + ")");
-
-				return p.showId == input.showId;
-			});
-			console.log(out);
-			return out;
+		getShowProducts(_: Object, input: { showId: number }) {
+			return dataService.filterTable("products", (obj) => (obj as Product).getShowId() === input.showId) as Product[];
 		},
 	},
 	Mutation: {
-		createUser(_: Object, input: types.hasName) {
-			const newSeller: types.User = {
-				id: users.length,
-				name: input.name,
-			};
-			users.push(newSeller);
-			console.log(newSeller);
+		createUser(_: unknown, input: { name: string }) {
+			const newSeller = dataService.insertTableRow("users", { name: input.name }) as User;
 			return newSeller;
 		},
-		createShow(_: Object, input: types.hasUserId & types.hasName & types.hasSchedule) {
-			const newShow: types.Show = {
-				id: shows.length,
-				userId: input.userId,
-				name: input.name,
-				state: types.state.PENDING,
-				schedule: input.schedule,
-				currentProductId: null,
-			};
-			// we could waste extra computation to check the sellerId first, but does it worth it ?
-			shows.push(newShow);
-			console.log(newShow);
+		createShow(_: Object, input: { name: string; userId: number; schedule: number }) {
+			const newShow = dataService.insertTableRow("shows", { ...input, state: state.PENDING, currentProductId: null }) as Show;
 			return newShow;
 		},
-		addProduct(_: Object, input: types.hasShowId & types.hasName & types.hasStartingPrice) {
-			const newProduct: types.Product = {
-				id: products.length,
-				showId: input.showId,
-				name: input.name,
-				startingPrice: input.startingPrice,
-				auctionState: types.state.PENDING,
-				expiration: null,
-				lastBid: null,
-			};
-			// we could waste extra computation to check the sellerId first, but does it worth it ?
-			products.push(newProduct);
-			console.log(newProduct);
+		addProduct(_: Object, input: { name: string; showId: number; startingPrice: number }) {
+			const newProduct = dataService.insertTableRow("shows", { ...input, auctionState: state.PENDING, expiration: null, lastBid: null }) as Product;
 			return newProduct;
 		},
-		startShow(_: Object, input: types.hasShowId) {
-			if (!shows[input.showId]) return;
-			if (shows[input.showId].state === types.state.PENDING) {
-				shows[input.showId].schedule = Date.now();
-				shows[input.showId].state = types.state.LIVE; // no need for state management. will be inferred from starting timestamp
-			}
-			return shows[input.showId];
+		startShow(_: Object, input: { showId: number }) {
+			const show = new Show(dataService.getTableRow("shows", input.showId) as Show);
+			show.start();
+			return dataService.updateTableRow("shows", show);
 		},
-		startAuction(_: Object, input: types.hasProductId) {
-			if (!products[input.productId]) return;
-			console.log(`startAuction(input.productId=${input.productId})`);
-			if (products[input.productId].auctionState === types.state.PENDING) {
-				products[input.productId].expiration = Date.now() + 60000;
-				products[input.productId].auctionState = types.state.LIVE; // no need for state management. will be inferred from starting timestamp
-			}
-			return products[input.productId];
+		startAuction(_: Object, input: { productId: number }) {
+			const product = new Product(dataService.getTableRow("products", input.productId) as Product);
+			product.startAuction();
+			return dataService.updateTableRow("products", product);
 		},
-		placeBid(_: Object, input: types.hasProductId & types.hasUserId & types.hasAmount) {
-			const now = Date.now();
-			const product = products[input.productId];
-			if (!product || product.expiration === null) return;
-			console.log(`placeBid(input.productId=${input.productId})`);
-			const expiration = product.lastBid?.expiration || product.expiration;
-			const BestAmount = product.lastBid?.amount || product.startingPrice;
-			if (now < expiration && BestAmount < input.amount) {
-				product.lastBid = {
-					productId: input.productId,
-					userId: input.userId,
-					amount: input.amount,
-					expiration: Math.max(now + 15000, product.expiration),
-				};
-                console.log('Publishing new bid for productId ' + product.id);
-				pubsub.publish(subTopics.BID_UPDATE, {
-					auctionUpdate: product.lastBid,
-				});
-				return product.lastBid;
-			} else {
-				if (now >= expiration) {
-					console.log(`time is up => now : ${now} / lastBidTime : ${expiration})`);
-				}
-				if (BestAmount >= input.amount) {
-					console.log(`not enougth => lastBidAmount : ${BestAmount} / amount : ${input.amount})`);
-				}
-			}
+		placeBid(_: Object, input: { productId: number; userId: number; amount: number }) {
+			const product = new Product(dataService.getTableRow("products", input.productId) as Product);
+			product.placeBid(input.userId, input.amount);
+			console.log("Publishing new bid for productId " + input.productId);
+			pubsub.publish(subTopics.BID_UPDATE, { auctionUpdate: product });
+			return dataService.updateTableRow("products", product);
 		},
 	},
 	Subscription: {
 		auctionUpdate: {
 			subscribe: withFilter(
-				() => pubsub.asyncIterator(subTopics.BID_UPDATE),
-				(lastBid: types.hasAuctionUpdate, filter: types.hasProductId) => {
-                    console.log(`subscribtion filter => lastBid : ${lastBid?.auctionUpdate.productId} / filter : ${filter.productId})`);
-                    return lastBid?.auctionUpdate.productId === filter.productId;
-                }
+				() => pubsub.asyncIterator([subTopics.BID_UPDATE]),
+				(payload: { auctionUpdate: Product }, filter: { productId: number }) => {
+					console.log(`subscribtion filter => lastBid : ${payload.auctionUpdate.getId()} / filter : ${filter.productId})`);
+					return payload.auctionUpdate.getId() === filter.productId;
+				}
 			),
 		},
 	},
 };
 
-export {resolvers};
+export { resolvers };

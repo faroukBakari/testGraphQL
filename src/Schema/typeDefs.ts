@@ -31,26 +31,26 @@ const typeDefs = buildSchema(`#graphql
     }
     # Queries
     type Query {
-        getUsers: [User]!
-        getShows: [Show]!
-        getShowProducts(showId: Int!): [Product]!
-        getProducts: [Product]!
+        getUsers: [User]
+        getShows: [Show]
+        getProducts: [Product]
+        getShowProducts(showId: Int!): [Product]
     }
     # Mutations
     type Mutation {
         createUser(name: String!): User
-        createShow(userId: Int!, name: String!): Show
+        createShow(userId: Int!, name: String!, schedule: Timestamp): Show
         addProduct(showId: Int!, name: String!, startingPrice: Float!): Product
         startShow(showId: Int!): Show
         startAuction(productId: Int!): Product
-        placeBid(productId: Int!, userId: Int!, amount: Float!): Bid
+        placeBid(productId: Int!, userId: Int!, amount: Float!): Product
     }
-
     # Subscriptions
     type Subscription {
-        auctionUpdate(productId: Int!): Bid
+        auctionUpdate(productId: Int!): Product
     }
 
+    # Schema
     schema {
         query: Query
         mutation: Mutation
