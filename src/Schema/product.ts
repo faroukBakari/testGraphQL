@@ -28,21 +28,30 @@ export default class Product {
         return this.showId;
     }
 
-    startAuction() {
+    getExpiration(): number {
+        if (this.expiration !== null) {
+            return this.expiration;
+        } else {
+            throw new Error(`auction not started`);
+        }
+    }
+
+    startAuction(delay: number) {
         if (this.auctionState === state.PENDING) {
-            this.expiration = Date.now() + 60000;
+            this.expiration = Date.now() + delay;
             this.auctionState = state.LIVE;
             return this;
         } else {
-            throw new Error(`product [${this.id}] auction allready started`)
+            throw new Error(`product [${this.id}] auction allready started`);
         }
     }
-    placeBid(userId: number, amount: number) {
+
+    placeBid(userId: number, amount: number, postponeDelay: number) {
         const now = Date.now();
         console.log(`placeBid(input.productId=${this.id})`);
         const BestAmount = this.lastBid?.getAmount() || this.startingPrice;
         if (this.expiration !== null && now < this.expiration && BestAmount < amount) {
-            this.expiration = Math.max(now + 15000, this.expiration);
+            if (now + postponeDelay > this.expiration)  this.expiration = now + postponeDelay;
             this.lastBid = new Bid({userId, amount} as unknown as Bid);
             return this;
         } else {
@@ -53,6 +62,14 @@ export default class Product {
             } else {
                  throw new Error(`not enougth => lastBidAmount : ${BestAmount} / amount : ${amount})`);
             }
+        }
+    }
+
+    endAuction() {
+        if (this.auctionState !== state.DONE) {
+            this.auctionState = state.DONE;
+        } else {
+            throw new Error(`product [${this.id}] auction allready ended`);
         }
     }
 }

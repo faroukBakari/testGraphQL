@@ -5,10 +5,13 @@ import state from "./state";
 import dataService from "./dataService";
 
 import { PubSub, withFilter } from "graphql-subscriptions";
+import internal from "stream";
 const pubsub = new PubSub();
 const subTopics = {
 	BID_UPDATE: "BID_UPDATE",
 };
+
+const auctionTimers = new Map<number, NodeJS.Timeout>();
 
 const resolvers = {
 	Query: {
@@ -45,14 +48,27 @@ const resolvers = {
 		},
 		startAuction(_: Object, input: { productId: number }) {
 			const product = new Product(dataService.getTableRow("products", input.productId) as Product);
-			product.startAuction();
+			product.startAuction(60000);
+			auctionTimers.set(product.getId(), setTimeout(() => {
+				product.endAuction();
+				dataService.updateTableRow("products", product);
+				pubsub.publish(subTopics.BID_UPDATE, { auctionUpdate: product });
+			}, product.getExpiration() -  Date.now()));
+			console.log("Publishing auction start for productId " + input.productId);
+			pubsub.publish(subTopics.BID_UPDATE, { auctionUpdate: product });
 			return dataService.updateTableRow("products", product);
 		},
 		placeBid(_: Object, input: { productId: number; userId: number; amount: number }) {
 			const product = new Product(dataService.getTableRow("products", input.productId) as Product);
-			product.placeBid(input.userId, input.amount);
+			product.placeBid(input.userId, input.amount, 15000);
 			console.log("Publishing new bid for productId " + input.productId);
 			pubsub.publish(subTopics.BID_UPDATE, { auctionUpdate: product });
+			clearTimeout(auctionTimers.get(product.getId()));
+			auctionTimers.set(product.getId(), setTimeout(() => {
+				product.endAuction();
+				dataService.updateTableRow("products", product);
+				pubsub.publish(subTopics.BID_UPDATE, { auctionUpdate: product });
+			}, product.getExpiration() -  Date.now()));
 			return dataService.updateTableRow("products", product);
 		},
 	},
