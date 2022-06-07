@@ -36,5 +36,7 @@ export default {
 	output: {
 		clean: true,
 		filename: "./[name].js",
+		path: path.resolve(__dirname, '../build/Client'),
 	},
 };
+
