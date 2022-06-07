@@ -1,47 +1,32 @@
-<html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
 </head>
 
 <body>
     <div class="main">
-        <div class="requester">
-            <div class="hist-container">
-                <div class="query-history" id="query-history">
+        <div class="video-container">
+            <video id="stream-vid" class="video-js stream-vid">
+                <source src="https://stream.mux.com/02cDqggWRQ2GkJskapoOW2OZq7I4NGL2y8aFApetXkBA.m3u8"
+                    type="application/x-mpegURL">
+            </video>
+            <div class="video-overlay">
+                <div class="overlay-content">
+                    <span id="show-title" class="show-title"></span>
+                    <div class="show-info">
+                        <div class="show-info-cell">
+                            <span id="show-seller"></span>
+                            <span id="show-product"></span>
+                        </div>
+                        <div class="show-info-cell">
+                            <span id="auction-state"></span>
+                            <span id="product-price"></span>
+                            <span id="auction-timer"></span>
+                        </div>
+                    </div>
+                    <div class="interaction">
+                        <button id="bid-btn" class="bid-btn">Bid [+1$]</button>
+                    </div>
                 </div>
             </div>
-            <textarea class="query" name="query" id="query">{
-__schema {
-    queryType {
-    fields {
-        name
-    }
-    }
-    mutationType {
-    fields {
-        name
-    }
-    }
-    subscriptionType {
-    fields {
-        name
-    }
-    }
-}
-}</textarea>
-            <span class="query-btn" id="query-btn">&#9658;</span>
-            <pre class="response" id="response"></pre>
-        </div>
-        <div class="server-subscriptions" id="server-subscriptions" style="display: none;">
-            <div class="sub-selecter" id="sub-selecter">
-            </div>
-            <div class="sub-updates" id="sub-updates"></div>
         </div>
     </div>
 </body>
-
-</html>

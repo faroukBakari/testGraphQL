@@ -2,279 +2,165 @@ import "./index.scss";
 import $ from "jquery";
 
 import { createClient } from 'graphql-ws';
+import videojs from 'video.js';
 
-const HIST_LIMIT = 12;
+import User from "../Schema/user";
+import Show from "../Schema/show";
+import Product from "../Schema/product";
 
-const strhash = (input: string) => {
-	let hash = 0, i, chr;
-	if (input.length === 0) return hash.toString(16);
-	for (i = 0; i < input.length; i++) {
-		chr = input.charCodeAt(i);
-		hash = (hash << 5) - hash + chr;
-		hash |= 0;
-	}
-	return hash.toString(16);
-};
-
-const textarea :HTMLTextAreaElement | null  = document.querySelector('#query');
-textarea?.addEventListener('keydown', (e) => {
-  if (e.keyCode === 9) {
-    e.preventDefault()
-    textarea.setRangeText( '  ', textarea.selectionStart, textarea.selectionStart, 'end');
-  }
-  if (e.key === '{') {
-    e.preventDefault()
-    textarea.setRangeText( '{}',  textarea.selectionStart, textarea.selectionStart );
-	textarea.setSelectionRange(textarea.selectionStart + 1, textarea.selectionStart + 1);
-  }
-  if (e.key === '[') {
-    e.preventDefault()
-    textarea.setRangeText( '[]',  textarea.selectionStart, textarea.selectionStart );
-	textarea.setSelectionRange(textarea.selectionStart + 1, textarea.selectionStart + 1);
-  }
-})
-
-const queryHist:  { [key: string]: string } = JSON.parse(localStorage.getItem('queryHist') || "{}");
-const threshold = Object.keys(queryHist).length - HIST_LIMIT;
-Object.keys(queryHist).map((key, idx) => idx < threshold && delete queryHist[key]);
-const addHistBtn = (key: string, req: string) => {
-	$("#query-history").prepend(`
-		<span  class="hist-btn" id="hist-btn-${key}" title="${req}">${req.replace(/\s+/g,'')}</span>
-	`);
-	$(`#hist-btn-${key}`).on('click', () => $("#query").val(queryHist[key]))
-	$(`#hist-btn-${key}`).on('contextmenu', (evt) => {
-		evt.preventDefault();
-		delete queryHist[key];
-		$(`#hist-btn-${key}`).remove();
-		localStorage.setItem('queryHist', JSON.stringify(queryHist));
-	})
-}
-Object.keys(queryHist).forEach((key, idx, self) => {
-	addHistBtn(key, queryHist[key]);
-	if (idx === self.length - 1) {
-		$("#query").val(queryHist[key]);
-	}
-});
-const addHist = (req: string) => {
-	const key = strhash(req);
-	if (!(key in queryHist)) {
-		console.log(`Saving request : ${req.replace(/\s+/g,'')}`);
-		const keys = Object.keys(queryHist);
-		if (keys.length >= HIST_LIMIT) {
-			$(`#hist-btn-${keys[0]}`).remove();
-			delete queryHist[keys[0]];
-		}
-		queryHist[key] = req;
-		localStorage.setItem('queryHist', JSON.stringify(queryHist));
-		addHistBtn(key, req);
-	}
-}
-
-const httpGrphQLReq = (req: string, callback: Function) => {
+const httpGrphQLReq = (query: string, callback: Function) => {
 	$.ajax({
 		url: "/graphql",
 		method: "POST",
 		contentType: "application/json",
 		data: JSON.stringify({
-			query: typeof req === 'string' ? req : JSON.stringify(req),
+			query,
             variables: { }
 		}),
-		success: (resp) => callback(resp),
+		success: (resp) => {
+			if ('errors' in resp) {
+				throw new Error(JSON.stringify(resp, null, 4))
+			}
+			callback(resp.data);
+		},
 	});
 }
 
-$("#query-btn").on('click', (evt) => {
-	const req = $("#query").val()?.toString() || '';
-	httpGrphQLReq(req, (resp: unknown) => {
-		addHist(req);
-		const data = JSON.stringify(resp, null, 4);
-		$("#response").text(data);
-	});
-});
+const asyncHttpGrphQLReq = async (query: string) => new Promise((resolve) => httpGrphQLReq(query, resolve));
 
-const appendSubUpdates = (data: Object) => {
-	console.log(`Subscription updates : ${data}`);
-	const time = new Date().toLocaleString("fr-FR");
-	$("#sub-updates").append(`
-	  <div class="update">
-		  <span class="time">${time}</span>
-		  <span class="data">${data}</span>
-	  </div>
-	  `);
-};
 
-let isWSLive = false;
-let client = createClient({
+let subClient = createClient({
 	url: "ws://localhost:4000/subscriptions",
 	keepAlive: 5000,
 	shouldRetry: () => true,
 	retryWait: async (nbRetries) => await new Promise((resolve) =>
 		setTimeout(resolve, 1000 + Math.random() * 3000),
 	),
-	// connectionAckWaitTimeout: 1000,
-	// lazy: false,
 	on: {
 		opened() {
 			console.log('subs websocket opened!');
 		},
 		connected() {
-			isWSLive = true;
 			console.log('subs websocket connected!');
-			appendSubUpdates('subs websocket connected!');
 		},
 		closed(err) {
 			console.log('subs websocket disconnected with reason : ' + (err as CloseEvent).reason);
-			appendSubUpdates('subs websocket disconnected with reason : ' + (err as CloseEvent).reason);
-			$("#sub-selecter input[type='checkbox']").prop( "checked", false );
-			isWSLive = false;
 		}
 	}
 });
 
-const subscritions = {};
-type type = {kind: string, name?: string, fields?: [ {name: string, type?: type }], ofType?: type};
-type gqlEndPoint = { fields: [ {name: string, args?: [{name: string}], type?: type } ]};
-type gqlSchema = {
-	__schema : {
-		queryType? : gqlEndPoint,
-		mutationType? : gqlEndPoint,
-		subscriptionType? : gqlEndPoint
+
+
+
+console.log('demo page');
+
+const player = videojs('stream-vid', {autoplay: true, preload: "auto", muted: true, responsive: true, fluid: true})
+console.log(player.currentDimensions());
+
+const updateDisplay = (input: {user?: User, show?: Show, product?: Product}) => {
+	if (input.user) {
+		$('#show-seller').html(`Seller : ${input.user.getname()}`);
+	}
+	if (input.show) {
+		$('#show-title').html(`Event : ${input.show.getname()}`);
+	}
+	if (input.product) {
+		$('#auction-state').html(`Auction status : ${input.product.getAuctionState().toLowerCase()}`);
+		$('#show-product').html(`Current Product : ${input.product.getname()}`);
+		$('#product-price').html(`Current price : ${input.product.getCurrentPrice().toPrecision(3)} $`);
+		if (input.product.getAuctionState() !== 'LIVE') {
+			$('#auction-timer').html('Timeout in : --');
+			$('#bid-btn')[0].setAttribute('disabled', '');
+		} else {
+			$('#auction-timer').html(`Timeout in : ${Math.round((input.product.getExpiration() - Date.now()) / 1000)} sec`);
+			$('#bid-btn')[0].removeAttribute('disabled');
+		}
 	}
 }
 
-httpGrphQLReq(
-	`#graphql
-{
-	__schema {
-	  queryType {
-		fields {
-			name
-			type {
-				kind
-				name
-				fields {
-					name
-				}
-			}
-			args {
-			name
-			type {
-				kind
-				name
-				ofType {
-					kind
-					name
-					fields {
-						name
-					}
-				}
-			}
-			}
+const generateShow = async () => {
+	let user: User;
+	let show: Show;
+	let product: Product;
+
+	const createUserQery = `#graphql
+		mutation {
+			createUser (name: "test-user") { id name }
 		}
-	  }
-	  mutationType {
-		fields {
-			name
-			type {
-				kind
-				name
-				fields {
-					name
-				}
-			}
-			args {
-			name
-			type {
-				kind
-				name
-				ofType {
-					kind
-					name
-					fields {
-						name
-					}
-				}
-			}
-			}
+	`;
+	let resp = await asyncHttpGrphQLReq(createUserQery);
+	user = new User((resp as {createUser: User}).createUser);
+	console.log(user);
+	const createShowQery = `#graphql
+		mutation {
+			createShow (
+				name: "test-show"
+				userId: ${user.getId()},
+				schedule: ${Date.now()}
+			) { id userId name state schedule currentProductId }
 		}
-	  }
-	  subscriptionType {
-		fields {
-			name
-			type {
-				kind
-				name
-				ofType {
-					kind
-					fields {
-						name
-						type {
-							kind
-						}
-					}
-				}
-				fields {
-					name
-					type {
-						kind
-					}
-				}
-			}
-			args {
-				name
-				type {
-					kind
-					name
-					ofType {
-						kind
-						name
-						fields {
-							name
-						}
-					}
-				}
-			}
+	`;
+	resp = await asyncHttpGrphQLReq(createShowQery);
+	show = new Show((resp as {createShow: Show}).createShow);
+	console.log(show);
+	const addProductQery = `#graphql
+		mutation {
+			addProduct (
+				name: "test-show"
+				showId: ${show.getId()},
+				startingPrice: 5,
+			) { id showId name auctionState startingPrice expiration lastBid {userId amount} }
 		}
-	  }
-	}
-  }
-`,
-	(resp: { data: gqlSchema }) => {
-		// console.log(JSON.stringify(resp, null, 4));
-		resp.data?.__schema?.subscriptionType?.fields.length && $('#server-subscriptions').show();
-		resp.data?.__schema?.subscriptionType?.fields.forEach((field) => {
-			console.log(JSON.stringify(field.args, null, 4));
-			$("#sub-selecter").append(`
-		<div class="subscription" id="sub-${field.name}">
-			<input type="checkbox">
-			<span title="${field.name}">${field.name}</span>
-			<input
-				type="text"
-				placeholder="args (a:'',b:''...)"
-				title='${JSON.stringify(field.args, null, 4)}'
-				${field.args?.length ? "" : "disabled"}
-			>
-		</div>
-		`);
-			$(`#sub-${field.name} input[type="checkbox"]`).on("change", (evt) => {
-				const doSubscribe = (evt.target as HTMLInputElement | null)?.checked;
-				console.log(`#subscription to ${field.name} : ${doSubscribe ? "on" : "off"}`);
-				const params = $(`#sub-${field.name} input[type="text"]`).val();
-				const query = field.args?.length ? `subscription { auctionUpdate ${params ? `(${params})` : ''} ${
-					(field?.type?.kind === "OBJECT")
-						? `{${field?.type?.fields?.filter(field => field.type?.kind !== "OBJECT")?.map(field => field.name).toString().replaceAll(',', ' ')}}`
-						: (field?.type?.ofType?.kind === "OBJECT")
-							? `{${field?.type?.ofType?.fields?.filter(field => field.type?.kind !== "OBJECT")?.map(field => field.name).toString().replaceAll(',', ' ')}}`
-							: ''
-				} }` : `subscription { auctionUpdate {amount} }`;
-				console.log(query);
-				client.subscribe({query}, {
-						next: (data) => appendSubUpdates(JSON.stringify(data)),
-						error: (err) => appendSubUpdates(`Error : ${JSON.stringify(err)}`),
-						complete: () => appendSubUpdates("Subscription terminated!"),
-					}
-				);
-			});
-		});
-	}
-);
+	`;
+	resp = await asyncHttpGrphQLReq(addProductQery);
+	product = new Product((resp as {addProduct: Product}).addProduct);
+	console.log(product);
+	const startAuctionQery = `#graphql
+		mutation {
+			startAuction (productId: ${product.getId()})
+			{ id showId name auctionState startingPrice expiration lastBid {userId amount} }
+		}
+	`;
+	resp = await asyncHttpGrphQLReq(startAuctionQery);
+	product = new Product((resp as {startAuction: Product}).startAuction);
+	console.log(product);
+	const auctionSub = `#graphql
+		subscription {
+			auctionUpdate (productId: ${product.getId()})
+			{ id showId name auctionState startingPrice expiration lastBid {userId amount} }
+		}
+	`;
+	subClient.subscribe({query: auctionSub}, {
+			next: (data) => {
+				product = new Product((data as {data: {auctionUpdate: Product}}).data.auctionUpdate);
+				console.log(product);
+				updateDisplay({product});
+			},
+			error: (err) => console.log(`Error : ${JSON.stringify(err)}`),
+			complete: () => console.log("Subscription terminated!"),
+		}
+	);
+	// auction-timer
+	const interval = setInterval(() => {
+		let timer = Math.round((product.getExpiration() - Date.now()) / 1000);
+		if (timer < 0) {
+			clearInterval(interval);
+			timer = 0;
+		}
+		$('#auction-timer').html(`Timeout in : ${timer} sec`);
+	}, 1000);
+	updateDisplay({user, show, product});
+	$('#bid-btn').on('click', (evt) => {
+		console.log('click');
+		
+		const placeBidQery = `#graphql
+			mutation {
+				placeBid (productId: ${product.getId()}, userId: 8, amount: ${product.getCurrentPrice() + 1})
+				{ id }
+			}
+		`;
+		asyncHttpGrphQLReq(placeBidQery);
+	})
+}
+
+generateShow();

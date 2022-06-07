@@ -1,4 +1,4 @@
-import state from './state'
+import {state, stateStr} from './state'
 import Bid from './bid'
 
 export default class Product {
@@ -24,6 +24,10 @@ export default class Product {
         return this.id;
     }
 
+    getname() {
+        return this.name;
+    }
+
     getShowId() {
         return this.showId;
     }
@@ -34,6 +38,17 @@ export default class Product {
         } else {
             throw new Error(`auction not started`);
         }
+    }
+    getCurrentPrice(): number {
+        if (this.lastBid !== null) {
+            return this.lastBid.getAmount();
+        } else {
+            return this.startingPrice;
+        }
+    }
+
+    getAuctionState() {
+        return stateStr[this.auctionState];
     }
 
     startAuction(delay: number) {

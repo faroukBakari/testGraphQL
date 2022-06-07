@@ -1,0 +1,47 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <div class="main">
+        <div class="requester">
+            <div class="hist-container">
+                <div class="query-history" id="query-history">
+                </div>
+            </div>
+            <textarea class="query" name="query" id="query">{
+__schema {
+    queryType {
+    fields {
+        name
+    }
+    }
+    mutationType {
+    fields {
+        name
+    }
+    }
+    subscriptionType {
+    fields {
+        name
+    }
+    }
+}
+}</textarea>
+            <span class="query-btn" id="query-btn">&#9658;</span>
+            <pre class="response" id="response"></pre>
+        </div>
+        <div class="server-subscriptions" id="server-subscriptions" style="display: none;">
+            <div class="sub-selecter" id="sub-selecter">
+            </div>
+            <div class="sub-updates" id="sub-updates"></div>
+        </div>
+    </div>
+</body>
+
+</html>

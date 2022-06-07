@@ -1,7 +1,7 @@
 import Show from "./show";
 import User from "./user";
 import Product from "./product";
-import state from "./state";
+import {state} from "./state";
 import dataService from "./dataService";
 
 import { PubSub, withFilter } from "graphql-subscriptions";
@@ -38,7 +38,7 @@ const resolvers = {
 			return newShow;
 		},
 		addProduct(_: Object, input: { name: string; showId: number; startingPrice: number }) {
-			const newProduct = dataService.insertTableRow("shows", { ...input, auctionState: state.PENDING, expiration: null, lastBid: null }) as Product;
+			const newProduct = dataService.insertTableRow("products", { ...input, auctionState: state.PENDING, expiration: null, lastBid: null }) as Product;
 			return newProduct;
 		},
 		startShow(_: Object, input: { showId: number }) {

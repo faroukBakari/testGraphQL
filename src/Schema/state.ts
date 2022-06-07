@@ -1,7 +1,11 @@
-enum state {
+export enum state {
     PENDING,
     LIVE,
     DONE
 }
 
-export default state;
+export const stateStr = {
+    [state.PENDING]: 'PENDING',
+    [state.LIVE]: 'LIVE',
+    [state.DONE]: 'DONE',
+};

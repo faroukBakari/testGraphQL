@@ -1,4 +1,4 @@
-import state from './state'
+import {state} from './state'
 
 export default class Show {
     constructor (record: Show) {
@@ -18,6 +18,10 @@ export default class Show {
 
     getId() {
         return this.id;
+    }
+
+    getname() {
+        return this.name;
     }
 
     start() {

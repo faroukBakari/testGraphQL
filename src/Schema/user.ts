@@ -9,4 +9,8 @@ export default class User {
     getId() {
         return this.id;
     }
+
+    getname() {
+        return this.name;
+    }
 }

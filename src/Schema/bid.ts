@@ -9,4 +9,8 @@ export default class Bid {
     getAmount() {
         return this.amount
     }
+
+    getUserId() {
+        return this.userId;
+    }
 }

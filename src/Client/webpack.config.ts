@@ -3,8 +3,8 @@ import HtmlWebpackPlugin from "html-webpack-plugin";
 
 export default {
 	entry: {
-		"index" : "./src/Client/index.ts",
-		"demo" : "./src/Client/demo.ts"
+		"graphql-client" : "./src/Client/graphql-client.ts",
+		"index" : "./src/Client/index.ts"
 	},
 	devtool: "source-map",
 	target: process.env.NODE_ENV === "production" ? "browserslist" : "web",
@@ -29,8 +29,8 @@ export default {
 	},
 
 	plugins: [
+		new HtmlWebpackPlugin({ filename: 'graphql-client.html', template: "./src/Client/graphql-client.html", chunks: ['graphql-client'] }),
 		new HtmlWebpackPlugin({ filename: 'index.html', template: "./src/Client/index.html", chunks: ['index'] }),
-		new HtmlWebpackPlugin({ filename: 'demo.html', template: "./src/Client/demo.html", chunks: ['demo'] }),
 	],
 
 	output: {
